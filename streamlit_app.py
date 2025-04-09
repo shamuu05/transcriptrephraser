@@ -15,6 +15,13 @@ tone = st.selectbox("🎨 Choose Tone (optional)", [
     "Default", "Formal", "Casual", "Humorous", "Motivational", 
     "Empathetic", "Assertive", "Professional", "Poetic", "Neutral"
 ])
+humanize = st.checkbox("🤖 Write in 100% Human-Like Style (AI Undetectable)")
+if humanize:
+    full_prompt = (
+        "Make this sound 100% human-written. Avoid any signs of AI-generated language. "
+        "Use natural sentence variation, idioms, and tone shifts. Be engaging, yet authentic.\n\n"
+        + full_prompt
+    )
 
 style = st.selectbox("✍️ Choose Script Style (optional)", [
     "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
