@@ -1,6 +1,5 @@
 streamlit
 keybert
 sentence-transformers
-transformers
+openai
 scikit-learn
-torch
