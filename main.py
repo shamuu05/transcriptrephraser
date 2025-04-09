@@ -4,10 +4,8 @@ import re
 import openai
 import os
 
-# Set your OpenAI API key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Initialize KeyBERT with a lightweight model
 embedding_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
 kw_model = KeyBERT(model=embedding_model)
 
@@ -31,16 +29,16 @@ def rephrase_with_openai(paragraphs, keywords):
             f"Paragraph: {para}"
         )
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that rewrites text."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=512,
-                temperature=0.7
+                temperature=0.7,
+                max_tokens=512
             )
-            reply = response['choices'][0]['message']['content'].strip()
+            reply = response.choices[0].message.content.strip()
             rephrased.append(reply)
         except Exception as e:
             rephrased.append(f"Error: {e}")
