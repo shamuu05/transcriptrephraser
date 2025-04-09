@@ -28,15 +28,6 @@ style = st.selectbox("✍️ Choose Script Style (optional)", [
     "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
 ])
 
-with st.expander("🛠️ Advanced Prompt Engineering (optional)"):
-    custom_prompt = st.text_area("🔧 Enter your custom rewrite prompt (overrides tone/style):")
-
-# Use this inside your loop:
-if custom_prompt.strip():
-    final_prompt = custom_prompt + "\n\n" + para
-else:
-    final_prompt = full_prompt
-
 # Check if the storytelling style should be preserved
 preserve_story = st.checkbox("📚 Keep storytelling format/style")
 
@@ -46,6 +37,9 @@ extend_limit = st.slider("📏 Rephrasing length multiplier", min_value=0.5, max
 
 # Main text input
 input_text = st.text_area("📝 Paste full transcript:", height=300)
+uploaded_file = st.file_uploader("📤 Upload a transcript file (.txt)", type=["txt"])
+if uploaded_file:
+    input_text = uploaded_file.read().decode("utf-8")
 
 # Buttons
 start_button = st.button("🚀 Start Rephrasing")
