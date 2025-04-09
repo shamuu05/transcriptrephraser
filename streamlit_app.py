@@ -1,6 +1,7 @@
 # streamlit_app.py
 import streamlit as st
 import os
+import re
 from main import split_transcript, rephrase_each_paragraph, combine_rephrased_text
 
 st.set_page_config(page_title="AI Transcript Rewriter", layout="wide")
@@ -16,6 +17,8 @@ if 'persona' not in st.session_state:
     st.session_state['persona'] = "Default"
 if 'lang' not in st.session_state:
     st.session_state['lang'] = "English"
+if 'keywords' not in st.session_state:
+    st.session_state['keywords'] = ""
 
 # Move controls to sidebar for cleaner layout
 with st.sidebar:
@@ -24,40 +27,40 @@ with st.sidebar:
     # API Key
     api_key = st.text_input("🔑 OpenAI API Key:", type="password")
     
-    # User Profiles & Settings
-    profile = st.selectbox("👤 Select Profile", ["Default", "My Writing Style", "Client A", "Client B"])
-    user_settings = {
-        "My Writing Style": {"tone": "Casual", "style": "Meme-style"},
-        "Client A": {"tone": "Professional", "style": "Narrative"},
-        "Client B": {"tone": "Formal", "style": "Bullet points"},
-    }
-    
     # Tone & Style Selection
-    if profile in user_settings:
-        tone = user_settings[profile]["tone"]
-        style = user_settings[profile]["style"]
-    else:
-        tone = st.selectbox("🎨 Choose Tone (optional)", [
-            "Default", "Formal", "Casual", "Humorous", "Motivational", 
-            "Empathetic", "Assertive", "Professional", "Poetic", "Neutral"
-        ])
-        style = st.selectbox("✍️ Choose Script Style (optional)", [
-            "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
-            "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
-        ])
+    tone = st.selectbox("🎨 Choose Tone (optional)", [
+        "Default", "Formal", "Casual", "Conversational", "Humorous", "Motivational", 
+        "Empathetic", "Assertive", "Professional", "Poetic", "Neutral", "Enthusiastic",
+        "Technical", "Friendly", "Authoritative", "Educational", "Inspirational", 
+        "Critical", "Analytical", "Persuasive", "Satirical"
+    ])
+    
+    style = st.selectbox("✍️ Choose Script Style (optional)", [
+        "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
+        "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational",
+        "Dialog", "Interview", "Academic", "News article", "Blog post", "Tutorial"
+    ])
     
     # Human Style Writing (Bypass AI Detectors)
     st.session_state['humanize'] = st.checkbox("🤖 Write in 100% Human-Like Style (AI Undetectable)")
     
     # Multi-Persona / Voice Options
     st.session_state['persona'] = st.selectbox("🗣️ Choose Writing Persona (optional)", [
-        "Default", "Motivational Coach", "Corporate Executive", 
-        "Cool Teenager", "Old Monk", "YouTube Vlogger", 
-        "Friendly Teacher", "Meme Lord", "Sci-Fi Narrator", "Reddit Commenter"
+        "Default", "Motivational Coach", "Corporate Executive", "Cool Teenager", 
+        "Old Monk", "YouTube Vlogger", "Friendly Teacher", "Meme Lord", 
+        "Sci-Fi Narrator", "Reddit Commenter", "College Professor", "Marketing Expert",
+        "Tech Enthusiast", "Life Coach", "Fitness Trainer", "Travel Blogger",
+        "Food Critic", "Data Scientist", "Historian", "Comedian", "Business Analyst",
+        "Sports Commentator", "Political Analyst", "Fashion Expert", "Journalist"
     ])
     
     # Language Selector
-    st.session_state['lang'] = st.selectbox("🌐 Output Language", ["English", "Spanish", "French", "Hindi", "Arabic"])
+    st.session_state['lang'] = st.selectbox("🌐 Output Language", [
+        "English", "Spanish", "French", "German", "Italian", "Portuguese", 
+        "Russian", "Japanese", "Chinese", "Korean", "Hindi", "Arabic", 
+        "Dutch", "Swedish", "Norwegian", "Finnish", "Danish", "Polish", 
+        "Turkish", "Greek", "Thai", "Vietnamese", "Indonesian", "Malay"
+    ])
     
     # Check if the storytelling style should be preserved
     preserve_story = st.checkbox("📚 Keep storytelling format/style")
@@ -65,6 +68,12 @@ with st.sidebar:
     # Control paragraph splitting and rephrasing length
     para_len = st.slider("🧱 Paragraph word count (split input)", min_value=50, max_value=500, value=200, step=50)
     extend_limit = st.slider("📏 Rephrasing length multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
+    
+    # Keyword management
+    st.session_state['keywords'] = st.text_area("🔑 Keywords to include (comma separated):", 
+                                               value=st.session_state.get('keywords', ""))
+    
+    keywords_to_remove = st.text_area("❌ Keywords to remove (comma separated):")
     
     # Auto Save / Resume with Session State
     if st.button("🔁 Resume Last Session"):
@@ -97,11 +106,16 @@ if input_text and input_text != st.session_state['last_text']:
 with st.expander("🛠️ Advanced Prompt Engineering (optional)"):
     custom_prompt = st.text_area("🔧 Enter your custom rewrite prompt (overrides tone/style):")
 
-# Experimental Features
-with st.expander("🧪 Experimental AI Features"):
-    enable_qna = st.checkbox("🔍 Generate Q&A from transcript")
-    summarize = st.checkbox("📝 Create summary first")
-    turn_into_blog = st.checkbox("📚 Turn into blog post")
+# Highlight keywords in the input text
+if st.session_state['keywords'] and input_text:
+    keywords_list = [k.strip() for k in st.session_state['keywords'].split(',') if k.strip()]
+    if keywords_list:
+        st.subheader("📌 Input Text with Highlighted Keywords:")
+        highlighted_text = input_text
+        for keyword in keywords_list:
+            pattern = re.compile(r'\b' + re.escape(keyword) + r'\b', re.IGNORECASE)
+            highlighted_text = pattern.sub(f"**{keyword}**", highlighted_text)
+        st.markdown(highlighted_text)
 
 if api_key:
     os.environ["OPENAI_API_KEY"] = api_key
@@ -113,6 +127,10 @@ if api_key:
             with st.spinner("Splitting transcript..."):
                 paragraphs = split_transcript(input_text, max_words_per_paragraph=para_len)
             st.info(f"✅ Split into {len(paragraphs)} paragraphs (~{para_len} words each)")
+            
+            # Process keywords
+            include_keywords = [k.strip() for k in st.session_state['keywords'].split(',') if k.strip()]
+            exclude_keywords = [k.strip() for k in keywords_to_remove.split(',') if k.strip()]
             
             # Build the prompt based on settings
             keyword_prompt = f"Write in a {tone} tone, using {style} style."
@@ -130,12 +148,17 @@ if api_key:
                 
             if st.session_state['lang'] != "English":
                 keyword_prompt = f"Translate and rephrase into {st.session_state['lang']}.\n\n" + keyword_prompt
-                
-            if summarize:
-                keyword_prompt = "First summarize, then rephrase:\n\n" + keyword_prompt
-                
-            if turn_into_blog:
-                keyword_prompt = "Turn this into a high-quality blog post:\n\n" + keyword_prompt
+            
+            # Add strict word count instruction
+            target_word_count = int(para_len * extend_limit)
+            keyword_prompt += f"\n\nIMPORTANT: Each paragraph MUST be approximately {target_word_count} words long."
+            
+            # Add keyword instructions
+            if include_keywords:
+                keyword_prompt += f"\n\nMake sure to include these keywords: {', '.join(include_keywords)}."
+            
+            if exclude_keywords:
+                keyword_prompt += f"\n\nAvoid using these words: {', '.join(exclude_keywords)}."
             
             with st.spinner("Rephrasing..."):
                 rephrased = []
@@ -144,24 +167,13 @@ if api_key:
                         final_prompt = custom_prompt + "\n\n" + para
                     else:
                         final_prompt = (
-                            f"{keyword_prompt}\n\nRephrase this paragraph. "
-                            f"Adjust length by a factor of {extend_limit:.1f}:\n\n{para}"
+                            f"{keyword_prompt}\n\nRephrase this paragraph and strictly adhere to the target word count "
+                            f"of {target_word_count} words (±10%):\n\n{para}"
                         )
                     response = rephrase_each_paragraph([para], keywords=final_prompt)
                     rephrased.extend(response)
                     
             final_output = combine_rephrased_text(rephrased)
-            
-            # Generate Q&A if enabled
-            if enable_qna:
-                with st.spinner("Generating Q&A from transcript..."):
-                    qna_prompt = "Generate a Q&A section based on this content:\n\n" + input_text
-                    qna_response = rephrase_each_paragraph([input_text], keywords=qna_prompt)
-                    qna_output = combine_rephrased_text(qna_response)
-                
-                st.subheader("📋 Generated Q&A")
-                st.text_area("Q&A Content:", value=qna_output, height=300)
-                st.download_button("📥 Download Q&A", data=qna_output, file_name="transcript_qa.txt")
             
             # Display stats & metrics
             original_words = len(input_text.split())
@@ -181,18 +193,40 @@ if api_key:
             st.text_area("📜 Rephrased Transcript:", value=final_output, height=500)
             st.download_button("📥 Download Transcript", data=final_output, file_name="rephrased_transcript.txt")
             
-            # Original vs Rephrased Viewer
+            # Original vs Rephrased Viewer with highlighted keywords
             with st.expander("🔍 Compare Original vs Rephrased"):
                 original_chunks = split_transcript(input_text)
                 for i, (orig, rew) in enumerate(zip(original_chunks, rephrased)):
                     st.markdown(f"**Paragraph {i+1}**")
                     col1, col2 = st.columns(2)
+                    
+                    # Highlight keywords in original text
+                    highlighted_orig = orig
+                    if include_keywords:
+                        for keyword in include_keywords:
+                            pattern = re.compile(r'\b' + re.escape(keyword) + r'\b', re.IGNORECASE)
+                            highlighted_orig = pattern.sub(f"**{keyword}**", highlighted_orig)
+                    
+                    # Highlight keywords in rephrased text
+                    highlighted_rew = rew
+                    if include_keywords:
+                        for keyword in include_keywords:
+                            pattern = re.compile(r'\b' + re.escape(keyword) + r'\b', re.IGNORECASE)
+                            highlighted_rew = pattern.sub(f"**{keyword}**", highlighted_rew)
+                    
                     with col1:
                         st.markdown("**Original:**")
-                        st.code(orig)
+                        st.markdown(highlighted_orig)
                     with col2:
                         st.markdown("**Rephrased:**")
-                        st.code(rew)
+                        st.markdown(highlighted_rew)
+                        
+                    # Word count comparison
+                    orig_wc = len(orig.split())
+                    rew_wc = len(rew.split())
+                    
+                    st.markdown(f"Word count: Original ({orig_wc}) → Rephrased ({rew_wc})")
+                    st.divider()
     
     if stop_button:
         st.warning("🚫 Process stopped manually.")
