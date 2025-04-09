@@ -1,5 +1,4 @@
 streamlit
-youtube-transcript-api
 keybert
 transformers
 scikit-learn
