@@ -10,50 +10,34 @@ def call_chatgpt(prompt, model="gpt-3.5-turbo"):
     response = openai.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "system", "content": "You are a helpful assistant that rewrites text."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
-        max_tokens=512
+        max_tokens=1000  # max safe output for GPT-3.5
     )
     return response.choices[0].message.content.strip()
 
-def extract_keywords_with_gpt(text):
-    prompt = f"Extract the 10 most important keywords from the following transcript:\n\n{text}"
-    response = call_chatgpt(prompt)
-    keywords = re.findall(r'\\b\\w+\\b', response) if ',' not in response else [k.strip() for k in response.split(',')]
-    return keywords[:10]
-
-def split_into_paragraphs(text, max_paragraphs=15):
-    sentences = re.split(r'(?<=[.!?]) +', text)
-    total_sentences = len(sentences)
-    sentences_per_paragraph = max(1, total_sentences // max_paragraphs)
-    
+def split_transcript(text, max_words_per_paragraph=200):
+    words = text.split()
     paragraphs = []
-    for i in range(0, total_sentences, sentences_per_paragraph):
-        paragraphs.append(" ".join(sentences[i:i+sentences_per_paragraph]))
-    return paragraphs[:max_paragraphs]
+    for i in range(0, len(words), max_words_per_paragraph):
+        chunk = " ".join(words[i:i+max_words_per_paragraph])
+        paragraphs.append(chunk)
+    return paragraphs
 
-def rephrase_paragraphs_with_gpt(paragraphs, keywords):
+def rephrase_each_paragraph(paragraphs, keywords=None):
     rephrased = []
-    keyword_string = ", ".join(keywords)
-    for para in paragraphs:
-        prompt = (
-            f"Rephrase the following paragraph. Keep the meaning the same and retain these keywords: {keyword_string}.\n\n"
-            f"Paragraph: {para}"
-        )
-        reply = call_chatgpt(prompt)
-        rephrased.append(reply)
+    for i, para in enumerate(paragraphs):
+        prompt = f"Rephrase the following paragraph, keeping the meaning and keywords (if any):\n\n{para}"
+        if keywords:
+            prompt = f"Rephrase this while keeping these keywords intact: {', '.join(keywords)}.\n\n{para}"
+        try:
+            response = call_chatgpt(prompt)
+            rephrased.append(response)
+        except Exception as e:
+            rephrased.append(f"[Error rephrasing paragraph {i+1}: {e}]")
     return rephrased
 
-def combine_and_trim(rephrased_paragraphs, original_length):
-    combined = " ".join(rephrased_paragraphs)
-    if len(combined) > original_length + 100:
-        combined = combined[:original_length + 100]
-        last_period = combined.rfind(".")
-        if last_period != -1:
-            combined = combined[:last_period+1]
-    elif len(combined) < original_length - 100:
-        combined += " [Note: Rephrased output is shorter than original.]"
-    return combined
-
+def combine_rephrased_text(paragraphs):
+    return "\n\n".join(paragraphs)
