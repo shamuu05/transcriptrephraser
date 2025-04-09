@@ -24,7 +24,7 @@ def format_paragraphs(text, sentences_per_paragraph=4):
         paragraphs.append(" ".join(sentences[i:i+sentences_per_paragraph]))
     return paragraphs
 
-rephraser = pipeline("text2text-generation", model="Vamsi/T5_Paraphrase_Paws")
+rephraser = pipeline("text2text-generation", model="ramsrigouthamg/t5_paraphraser")
 
 def rephrase_with_keywords(paragraphs, keywords):
     rephrased = []
