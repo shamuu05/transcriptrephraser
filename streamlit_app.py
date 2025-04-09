@@ -78,14 +78,7 @@ if api_key:
                     rephrased.extend(response)
 
             final_output = combine_rephrased_text(rephrased)
-            with st.expander("🔍 Compare Original vs Rephrased"):
-    original_chunks = split_transcript(input_text)
-    for orig, rew in zip(original_chunks, rephrased):
-        st.markdown("**Original:**")
-        st.code(orig)
-        st.markdown("**Rephrased:**")
-        st.code(rew)
-
+    
             st.download_button("📥 Download Transcript", data=final_output, file_name="rephrased_transcript.txt")
 
     if stop_button:
