@@ -27,15 +27,6 @@ style = st.selectbox("✍️ Choose Script Style (optional)", [
     "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
     "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
 ])
-with st.expander("🛠️ Advanced Prompt Engineering (optional)"):
-    custom_prompt = st.text_area("🔧 Enter your custom rewrite prompt (overrides tone/style):")
-
-# Use this inside your loop:
-if custom_prompt.strip():
-    final_prompt = custom_prompt + "\n\n" + para
-else:
-    final_prompt = full_prompt
-
 # Check if the storytelling style should be preserved
 preserve_story = st.checkbox("📚 Keep storytelling format/style")
 
