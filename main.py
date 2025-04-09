@@ -1,9 +1,13 @@
 from keybert import KeyBERT
+from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 import re
 
+# Load a lightweight embedding model for keyword extraction
+embedding_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")  # very small and fast
+kw_model = KeyBERT(model=embedding_model)
+
 def extract_keywords(text, num_keywords=10):
-    kw_model = KeyBERT()
     keywords = kw_model.extract_keywords(text, top_n=num_keywords, stop_words='english')
     return [kw[0] for kw in keywords]
 
