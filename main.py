@@ -26,18 +26,17 @@ def split_transcript(text, max_words_per_paragraph=200):
         paragraphs.append(chunk)
     return paragraphs
 
-def rephrase_each_paragraph(paragraphs, keywords=None):
+def rephrase_each_paragraph(paragraphs, keywords=None, extra_instruction=None):
     rephrased = []
     for i, para in enumerate(paragraphs):
-        prompt = f"Rephrase the following paragraph, keeping the meaning and keywords (if any):\n\n{para}"
-        if keywords:
-            prompt = f"Rephrase this while keeping these keywords intact: {', '.join(keywords)}.\n\n{para}"
+        prompt = f"{extra_instruction}\n\nRephrase this paragraph while keeping the meaning:\n\n{para}"
         try:
             response = call_chatgpt(prompt)
             rephrased.append(response)
         except Exception as e:
             rephrased.append(f"[Error rephrasing paragraph {i+1}: {e}]")
     return rephrased
+
 
 def combine_rephrased_text(paragraphs):
     return "\n\n".join(paragraphs)
