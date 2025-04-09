@@ -54,6 +54,6 @@ def combine_and_trim(rephrased_paragraphs, original_length):
         if last_period != -1:
             combined = combined[:last_period+1]
     elif len(combined) < original_length - 100:
-        padding = "." * ((original_length - len(combined)) // 2)
-        combined = padding + combined + padding
+        combined += " [Note: Rephrased output is shorter than original.]"
     return combined
+
