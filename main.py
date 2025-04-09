@@ -1,11 +1,13 @@
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer
-import re
 import openai
+import re
 import os
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Just set the API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
+# Load a lightweight keyword model
 embedding_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
 kw_model = KeyBERT(model=embedding_model)
 
@@ -29,7 +31,7 @@ def rephrase_with_openai(paragraphs, keywords):
             f"Paragraph: {para}"
         )
         try:
-            response = client.chat.completions.create(
+            response = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that rewrites text."},
