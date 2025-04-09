@@ -81,6 +81,14 @@ if api_key:
 
             st.subheader("✅ Rephrased Output")
             st.text_area("📜 Rephrased Transcript:", value=final_output, height=500)
+            original_words = len(input_text.split())
+rephrased_words = len(final_output.split())
+read_time = round(original_words / 200)
+
+st.metric("📄 Original Word Count", original_words)
+st.metric("✍️ Rephrased Word Count", rephrased_words)
+st.metric("⏱️ Estimated Read Time", f"{read_time} min")
+
 
             st.download_button("📥 Download Transcript", data=final_output, file_name="rephrased_transcript.txt")
 
