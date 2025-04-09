@@ -34,8 +34,6 @@ with st.sidebar:
             "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
         ])
     
-    # Human Style Writing (Bypass AI Detectors)
-    humanize = st.checkbox("🤖 Write in 100% Human-Like Style (AI Undetectable)")
     
     # Multi-Persona / Voice Options
     persona = st.selectbox("🗣️ Choose Writing Persona (optional)", [
