@@ -5,6 +5,18 @@ from main import split_transcript, rephrase_each_paragraph, combine_rephrased_te
 
 st.set_page_config(page_title="AI Transcript Rewriter", layout="wide")
 
+# Initialize session state variables
+if 'last_text' not in st.session_state:
+    st.session_state['last_text'] = ""
+if 'current_text' not in st.session_state:
+    st.session_state['current_text'] = ""
+if 'humanize' not in st.session_state:
+    st.session_state['humanize'] = False
+if 'persona' not in st.session_state:
+    st.session_state['persona'] = "Default"
+if 'lang' not in st.session_state:
+    st.session_state['lang'] = "English"
+
 # Move controls to sidebar for cleaner layout
 with st.sidebar:
     st.title("⚙️ Controls")
@@ -34,16 +46,18 @@ with st.sidebar:
             "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
         ])
     
+    # Human Style Writing (Bypass AI Detectors)
+    st.session_state['humanize'] = st.checkbox("🤖 Write in 100% Human-Like Style (AI Undetectable)")
     
     # Multi-Persona / Voice Options
-    persona = st.selectbox("🗣️ Choose Writing Persona (optional)", [
+    st.session_state['persona'] = st.selectbox("🗣️ Choose Writing Persona (optional)", [
         "Default", "Motivational Coach", "Corporate Executive", 
         "Cool Teenager", "Old Monk", "YouTube Vlogger", 
         "Friendly Teacher", "Meme Lord", "Sci-Fi Narrator", "Reddit Commenter"
     ])
     
     # Language Selector
-    lang = st.selectbox("🌐 Output Language", ["English", "Spanish", "French", "Hindi", "Arabic"])
+    st.session_state['lang'] = st.selectbox("🌐 Output Language", ["English", "Spanish", "French", "Hindi", "Arabic"])
     
     # Check if the storytelling style should be preserved
     preserve_story = st.checkbox("📚 Keep storytelling format/style")
@@ -53,12 +67,8 @@ with st.sidebar:
     extend_limit = st.slider("📏 Rephrasing length multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
     
     # Auto Save / Resume with Session State
-    if 'last_text' not in st.session_state:
-        st.session_state['last_text'] = ""
-    
     if st.button("🔁 Resume Last Session"):
-        input_text = st.session_state.get('last_text', "")
-        st.session_state['current_text'] = input_text
+        st.session_state['current_text'] = st.session_state['last_text']
 
     # Buttons
     start_button = st.button("🚀 Start Rephrasing")
@@ -75,11 +85,11 @@ if uploaded_file:
 else:
     # Main text input
     input_text = st.text_area("📝 Paste full transcript:", 
-                             value=st.session_state.get('current_text', ""), 
+                             value=st.session_state['current_text'], 
                              height=300)
 
 # Save current text to session state
-if input_text and input_text != st.session_state.get('last_text', ""):
+if input_text and input_text != st.session_state['last_text']:
     st.session_state['last_text'] = input_text
     st.success("🧠 Session Saved!")
 
@@ -110,16 +120,16 @@ if api_key:
             if preserve_story:
                 keyword_prompt += " Keep the storytelling structure."
                 
-            if humanize:
+            if st.session_state['humanize']:
                 keyword_prompt = ("Make this sound 100% human-written. Avoid any signs of AI-generated language. "
                                  "Use natural sentence variation, idioms, and tone shifts. Be engaging, yet authentic.\n\n"
                                  + keyword_prompt)
                 
-            if persona != "Default":
-                keyword_prompt = f"Write this as if you are a {persona}.\n\n" + keyword_prompt
+            if st.session_state['persona'] != "Default":
+                keyword_prompt = f"Write this as if you are a {st.session_state['persona']}.\n\n" + keyword_prompt
                 
-            if lang != "English":
-                keyword_prompt = f"Translate and rephrase into {lang}.\n\n" + keyword_prompt
+            if st.session_state['lang'] != "English":
+                keyword_prompt = f"Translate and rephrase into {st.session_state['lang']}.\n\n" + keyword_prompt
                 
             if summarize:
                 keyword_prompt = "First summarize, then rephrase:\n\n" + keyword_prompt
@@ -174,11 +184,15 @@ if api_key:
             # Original vs Rephrased Viewer
             with st.expander("🔍 Compare Original vs Rephrased"):
                 original_chunks = split_transcript(input_text)
-                for orig, rew in zip(original_chunks, rephrased):
-                    st.markdown("**Original:**")
-                    st.code(orig)
-                    st.markdown("**Rephrased:**")
-                    st.code(rew)
+                for i, (orig, rew) in enumerate(zip(original_chunks, rephrased)):
+                    st.markdown(f"**Paragraph {i+1}**")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Original:**")
+                        st.code(orig)
+                    with col2:
+                        st.markdown("**Rephrased:**")
+                        st.code(rew)
     
     if stop_button:
         st.warning("🚫 Process stopped manually.")
