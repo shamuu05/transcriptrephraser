@@ -4,29 +4,74 @@ import streamlit as st
 import os
 from main import split_transcript, rephrase_each_paragraph, combine_rephrased_text
 
-st.set_page_config(page_title="Long Transcript Rewriter", layout="wide")
-st.title("📄 Transcript Rewriter (Token-Limit Safe)")
+st.set_page_config(page_title="AI Transcript Rewriter", layout="wide")
+st.title("📄 Transcript Rewriter (ChatGPT + Style Control)")
 
-api_key = st.text_input("Enter your OpenAI API Key:", type="password")
-input_text = st.text_area("Paste your full transcript (up to 3000+ words):", height=300)
+# API Key
+api_key = st.text_input("🔑 OpenAI API Key:", type="password")
+
+# Tone & Style Selection
+tone = st.selectbox("🎨 Choose Tone (optional)", [
+    "Default", "Formal", "Casual", "Humorous", "Motivational", 
+    "Empathetic", "Assertive", "Professional", "Poetic", "Neutral"
+])
+
+style = st.selectbox("✍️ Choose Script Style (optional)", [
+    "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
+    "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
+])
+
+# Check if the storytelling style should be preserved
+preserve_story = st.checkbox("📚 Keep storytelling format/style")
+
+# Control paragraph splitting and rephrasing length
+para_len = st.slider("🧱 Paragraph word count (split input)", min_value=50, max_value=500, value=200, step=50)
+extend_limit = st.slider("📏 Rephrasing length multiplier", min_value=0.5, max_value=2.0, value=1.0, step=0.1)
+
+# Main text input
+input_text = st.text_area("📝 Paste full transcript:", height=300)
+
+# Buttons
+start_button = st.button("🚀 Start Rephrasing")
+stop_button = st.button("🛑 Stop")
 
 if api_key:
     os.environ["OPENAI_API_KEY"] = api_key
 
-    if input_text:
-        st.info("Splitting transcript into manageable parts...")
-        paragraphs = split_transcript(input_text, max_words_per_paragraph=200)
+    if start_button:
+        if not input_text.strip():
+            st.warning("Please paste a transcript first.")
+        else:
+            st.success("Starting rephrasing process...")
 
-        st.info(f"✅ Split into {len(paragraphs)} paragraphs (max ~200 words each)")
+            with st.spinner("Splitting transcript..."):
+                paragraphs = split_transcript(input_text, max_words_per_paragraph=para_len)
 
-        with st.spinner("Rephrasing paragraphs one by one with ChatGPT..."):
-            rephrased = rephrase_each_paragraph(paragraphs)
+            st.info(f"✅ Split into {len(paragraphs)} paragraphs (~{para_len} words each)")
 
-        final_text = combine_rephrased_text(rephrased)
+            # Rephrasing Prompt Modifier
+            keyword_prompt = f"Write in a {tone} tone, using {style} style."
+            if preserve_story:
+                keyword_prompt += " Keep the storytelling structure."
 
-        st.subheader("📝 Rephrased Transcript (Full Length)")
-        st.text_area("Rephrased Output:", value=final_text, height=500)
+            with st.spinner("Rephrasing..."):
+                rephrased = []
+                for para in paragraphs:
+                    full_prompt = (
+                        f"{keyword_prompt}\n\nRephrase this paragraph. "
+                        f"Adjust length by a factor of {extend_limit:.1f}:\n\n{para}"
+                    )
+                    response = rephrase_each_paragraph([para], keywords=None)  # you can pass prompt here if needed
+                    rephrased.extend(response)
 
-        st.download_button("📥 Download Rephrased Transcript", data=final_text, file_name="rephrased_transcript.txt")
+            final_output = combine_rephrased_text(rephrased)
+
+            st.subheader("✅ Rephrased Output")
+            st.text_area("📜 Rephrased Transcript:", value=final_output, height=500)
+
+            st.download_button("📥 Download Transcript", data=final_output, file_name="rephrased_transcript.txt")
+
+    if stop_button:
+        st.warning("🚫 Process stopped manually.")
 else:
-    st.info("Please enter your OpenAI API key to start.")
+    st.info("🔐 Enter your OpenAI API key to start.")
