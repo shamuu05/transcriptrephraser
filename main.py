@@ -1,13 +1,15 @@
+# main.py
+
 from keybert import KeyBERT
 from sentence_transformers import SentenceTransformer
 import openai
 import re
 import os
 
-# Just set the API key
+# Set OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Load a lightweight keyword model
+# Load lightweight model for keyword extraction
 embedding_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
 kw_model = KeyBERT(model=embedding_model)
 
@@ -15,12 +17,15 @@ def extract_keywords(text, num_keywords=10):
     keywords = kw_model.extract_keywords(text, top_n=num_keywords, stop_words='english')
     return [kw[0] for kw in keywords]
 
-def format_paragraphs(text, sentences_per_paragraph=4):
+def format_paragraphs(text, max_paragraphs=15):
     sentences = re.split(r'(?<=[.!?]) +', text)
+    total_sentences = len(sentences)
+    sentences_per_paragraph = max(1, total_sentences // max_paragraphs)
+    
     paragraphs = []
     for i in range(0, len(sentences), sentences_per_paragraph):
         paragraphs.append(" ".join(sentences[i:i+sentences_per_paragraph]))
-    return paragraphs
+    return paragraphs[:max_paragraphs]
 
 def rephrase_with_openai(paragraphs, keywords):
     rephrased = []
@@ -44,4 +49,4 @@ def rephrase_with_openai(paragraphs, keywords):
             rephrased.append(reply)
         except Exception as e:
             rephrased.append(f"Error: {e}")
-    return rephrased
+    return " ".join(rephrased)
