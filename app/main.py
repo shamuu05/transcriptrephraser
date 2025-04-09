@@ -24,12 +24,11 @@ def format_paragraphs(text, sentences_per_paragraph=4):
         paragraphs.append(" ".join(sentences[i:i+sentences_per_paragraph]))
     return paragraphs
 
-rephraser = pipeline("text2text-generation", model="ramsrigouthamg/t5_paraphraser")
-
 def rephrase_with_keywords(paragraphs, keywords):
+    rephraser = pipeline("text2text-generation", model="ramsrigouthamg/t5_paraphraser")
     rephrased = []
     for para in paragraphs:
-        prompt = f"Paraphrase this while keeping keywords: {', '.join(keywords)}. Text: {para}"
+        prompt = f"paraphrase: {para}"
         result = rephraser(prompt, max_length=512, do_sample=True, top_k=50)[0]['generated_text']
         rephrased.append(result)
     return rephrased
