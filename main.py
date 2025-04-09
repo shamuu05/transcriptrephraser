@@ -1,52 +1,59 @@
 # main.py
 
-from keybert import KeyBERT
-from sentence_transformers import SentenceTransformer
 import openai
-import re
 import os
+import re
 
-# Set OpenAI API key from environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Load lightweight model for keyword extraction
-embedding_model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
-kw_model = KeyBERT(model=embedding_model)
+def call_chatgpt(prompt, model="gpt-3.5-turbo"):
+    response = openai.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=512
+    )
+    return response.choices[0].message.content.strip()
 
-def extract_keywords(text, num_keywords=10):
-    keywords = kw_model.extract_keywords(text, top_n=num_keywords, stop_words='english')
-    return [kw[0] for kw in keywords]
+def extract_keywords_with_gpt(text):
+    prompt = f"Extract the 10 most important keywords from the following transcript:\n\n{text}"
+    response = call_chatgpt(prompt)
+    keywords = re.findall(r'\\b\\w+\\b', response) if ',' not in response else [k.strip() for k in response.split(',')]
+    return keywords[:10]
 
-def format_paragraphs(text, max_paragraphs=15):
+def split_into_paragraphs(text, max_paragraphs=15):
     sentences = re.split(r'(?<=[.!?]) +', text)
     total_sentences = len(sentences)
     sentences_per_paragraph = max(1, total_sentences // max_paragraphs)
     
     paragraphs = []
-    for i in range(0, len(sentences), sentences_per_paragraph):
+    for i in range(0, total_sentences, sentences_per_paragraph):
         paragraphs.append(" ".join(sentences[i:i+sentences_per_paragraph]))
     return paragraphs[:max_paragraphs]
 
-def rephrase_with_openai(paragraphs, keywords):
+def rephrase_paragraphs_with_gpt(paragraphs, keywords):
     rephrased = []
+    keyword_string = ", ".join(keywords)
     for para in paragraphs:
         prompt = (
-            f"Rephrase the following paragraph while keeping the meaning the same. "
-            f"Make sure to retain these keywords exactly as they are: {', '.join(keywords)}.\n\n"
+            f"Rephrase the following paragraph. Keep the meaning the same and retain these keywords: {keyword_string}.\n\n"
             f"Paragraph: {para}"
         )
-        try:
-            response = openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that rewrites text."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=512
-            )
-            reply = response.choices[0].message.content.strip()
-            rephrased.append(reply)
-        except Exception as e:
-            rephrased.append(f"Error: {e}")
-    return " ".join(rephrased)
+        reply = call_chatgpt(prompt)
+        rephrased.append(reply)
+    return rephrased
+
+def combine_and_trim(rephrased_paragraphs, original_length):
+    combined = " ".join(rephrased_paragraphs)
+    if len(combined) > original_length + 100:
+        combined = combined[:original_length + 100]
+        last_period = combined.rfind(".")
+        if last_period != -1:
+            combined = combined[:last_period+1]
+    elif len(combined) < original_length - 100:
+        padding = "." * ((original_length - len(combined)) // 2)
+        combined = padding + combined + padding
+    return combined
