@@ -1,5 +1,2 @@
 streamlit
-keybert
-sentence-transformers
 openai>=1.0.0
-scikit-learn
