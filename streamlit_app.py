@@ -27,6 +27,9 @@ style = st.selectbox("✍️ Choose Script Style (optional)", [
     "Default", "Meme-style", "Storytelling", "Inspirational", "Socratic",
     "Bullet points", "Explanatory", "Twitter-thread", "Narrative", "Educational"
 ])
+lang = st.selectbox("🌐 Output Language", ["English", "Spanish", "French", "Hindi", "Arabic"])
+if lang != "English":
+    full_prompt = f"Translate and rephrase into {lang}.\n\n" + full_prompt
 
 # Check if the storytelling style should be preserved
 preserve_story = st.checkbox("📚 Keep storytelling format/style")
